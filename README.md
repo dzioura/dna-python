@@ -25,4 +25,17 @@ Run testExecute.py in level_two folder and follow on screen instruction
 - Input 2 for Insert method
 - Input 3 for Find method
 - Input 4 for Overlap method
+
 ** Please utilize Insert method to create testing data **
+
+# Level Three
+Persistent store of data
+
+# Testing Level Three
+Run testExecute.py in level_two folder and follow on screen instruction
+- Input 1 for GET method
+- Input 2 for Insert method
+- Input 3 for Find method
+- Input 4 for Overlap method
+
+** The data.json file is initialized with the 3 DNA sequences from the document **

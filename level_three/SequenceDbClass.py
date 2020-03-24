@@ -1,4 +1,6 @@
 import re
+import json
+import os.path
 
 class SequenceDbClass:
     """
@@ -19,8 +21,6 @@ class SequenceDbClass:
                 DNA sequence associated with the id.
                 If no match is found message to user will be displayed.
                 'Inputed sequence_id does not match any sequence.'
-            raises:
-                ValueError, when sequence_id is not an integer.
         insert(sequence)
             returns:
                 Dictionary containing sequence_id and message. If sequence was
@@ -35,17 +35,20 @@ class SequenceDbClass:
                 sequence_id. False otherwise
             raises:
                 ValueError, when illegal characters are passed in.
-                ValueError, when sequence_id is not an integer.
     """
     VALIDATION_REG = re.compile('^[ACGT]+$')
+    DATA_DIR = 'data'
+    DATA_FILE = 'data.json'
     NEXT_ID = 1
     _database = {}
     
     def __init__(self):
-        self._database = {
-            "by_id": {},
-            "by_sequence": {}
-        }
+        file_path = os.path.join(self.DATA_DIR, self.DATA_FILE)
+        with open(file_path, 'r') as file:
+            self._database = json.load(file)
+
+        if (self._database['by_id']):
+            self.NEXT_ID = int(max(self._database['by_id'], key=int)) + 1
 
     def find(self, sample):
         """
@@ -73,21 +76,16 @@ class SequenceDbClass:
         """
             Get DNA sequence that matches the sequence_id.
             Attributes:
-                sequence_id (int): Sequence ID assigned to DNA sequence.
+                sequence_id (string): Sequence ID assigned to DNA sequence.
             Return:
                 String - DNA sequence, on no sequence the following message
                 'Inputed sequence_id does not match any sequence.'.
-            Raises:
-                ValueError when sequence_id is not a positive integer.
         """
-        if (isinstance(sequence_id, int)):
-            sequence = self._database['by_id'].get(sequence_id)
-            if (sequence):
-                return sequence
-            else:
-                return 'Inputed sequence_id does not match any sequence.'
+        sequence = self._database['by_id'].get(sequence_id)
+        if (sequence):
+            return sequence
         else:
-            raise ValueError('Sequence ID must be an integer.')
+            return 'Inputed sequence_id does not match any sequence.'
 
     def insert(self, sequence):
         """
@@ -107,13 +105,16 @@ class SequenceDbClass:
             }
             if (return_obj['sequence_id'] is None):
                 return_obj['sequence_id'] = self.NEXT_ID
-                self._database['by_id'][self.NEXT_ID] = sequence
+                self._database['by_id'][str(self.NEXT_ID)] = sequence
                 self._database['by_sequence'][sequence] = self.NEXT_ID
                 self.NEXT_ID += 1
             else:
                 return_obj['message'] = 'exists'
         else:
             raise ValueError('Only A, C, G and T are allowed in sequence.')
+
+        # Save file before returning
+        self._save_file()
 
         return return_obj
 
@@ -124,32 +125,28 @@ class SequenceDbClass:
             Attributes:
                 sample (string): DNA sequence sample to find. Must only
                                  contain 'A','C','G' and 'T'.
-                sequence_id (int): Sequence ID assigned to DNA sequence.
+                sequence_id (string): Sequence ID assigned to DNA sequence.
             Return:
                 Boolean. True if sample overlaps the sequence represented by
                 sequence_id. False otherwise
             Raises:
                 ValueError, when illegal characters are present in sample.
-                ValueError, when sequence_id is not an integer.
         """
         overlapped = False
         if (self._validate_input(sample)):
-            if (isinstance(sequence_id, int)):
-                sequence = self.get(sequence_id)
-                if (len(sample) > len(sequence)):
-                    if (sequence in sample):
-                        overlapped = True
-                else:
-                    if (sample in sequence):
-                        overlapped = True
-
-                    elif self._overlap_front(sample, sequence):
-                        overlapped = True
-
-                    elif self._overlap_back(sample, sequence):
-                        overlapped = True
+            sequence = self.get(sequence_id)
+            if (len(sample) > len(sequence)):
+                if (sequence in sample):
+                    overlapped = True
             else:
-                raise ValueError('Sequence ID must be an integer.')
+                if (sample in sequence):
+                    overlapped = True
+
+                elif self._overlap_front(sample, sequence):
+                    overlapped = True
+
+                elif self._overlap_back(sample, sequence):
+                    overlapped = True
         else:
             raise ValueError('Only A, C, G and T are allowed in sample.')
 
@@ -211,6 +208,15 @@ class SequenceDbClass:
                 substring = substring[-count:]
         return overlaps
 
+    def _save_file(self):
+        """
+            Updated local storage
+        """
+        file_path = os.path.join(self.DATA_DIR, self.DATA_FILE)
+        with open(file_path, 'w') as file:
+            json.dump(self._database, file)
+
+
     def _validate_input(self, sequence):
         """
             Validates that sequence only contains 'A', 'C', 'G' and 'T'.
@@ -220,10 +226,3 @@ class SequenceDbClass:
         if (self.VALIDATION_REG.match(sequence)):
             return True
         return False
-
-
-
-
-
-
-
